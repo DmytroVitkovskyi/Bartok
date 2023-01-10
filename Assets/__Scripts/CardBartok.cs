@@ -31,10 +31,14 @@ public class CardBartok : Card
     public List<Vector3> bezierPts;
     public List<Quaternion> bezierRots;
     public float timeStart, timeDuration;
+    public int eventualSortOrder;
+    public string eventualSortLayer;
 
     // По завершении перемещения карты будет вызываться
     // reportFinishTo.SendMessage()
     public GameObject reportFinishTo = null;
+    [System.NonSerialized]
+    public Player callbackPlayer = null;
 
     // Запускает перемещение карты в новое местоположение с заданным
     //  поворотом
@@ -100,12 +104,14 @@ public class CardBartok : Card
 
                     if (reportFinishTo != null)
                     {
-                        reportFinishTo.SendMessage("CBCallBack", this);
-                        reportFinishTo = null;
+                        // reportFinishTo.SendMessage("CBCallBack", this); нет объекта получающего вызов, ошибка не знаю с чем связана
+                        Camera.main.GetComponent<Bartok>().CBCallback(this);
+                        reportFinishTo = null; // пока не буду обнулять
                     }
-                    else
+                    else if(callbackPlayer != null)
                     { // Если ничего вызывать не надо
-                        // Оставить как есть.
+                        callbackPlayer.CBCallBack(this);
+                        callbackPlayer = null;
                     }
                 }
                 else
@@ -114,8 +120,29 @@ public class CardBartok : Card
                     transform.localPosition = pos;
                     Quaternion rotQ = Utils.Bezier(uC, bezierRots);
                     transform.rotation = rotQ;
+
+                    if (u > 0.5f)
+                    {
+                        SpriteRenderer sRend = spriteRenderers[0];
+                        if (sRend.sortingOrder != eventualSortOrder)
+                        {
+                            // Установить конечный порядок сортировки
+                            SetSortOrder(eventualSortOrder);
+                        }
+                        if (sRend.sortingLayerName != eventualSortLayer)
+                        {
+                            // Установить конечный слой сортировки
+                            SetSortingLayerName(eventualSortLayer);
+                        }
+                    }
                 }
                 break;
         }
     }
+    private void OnMouseUpAsButton()
+    {
+        Bartok.S.CardClicked(this);
+        base.OnMouseUpAsButton();
+    }
+  
 }
